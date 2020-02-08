@@ -16,7 +16,7 @@ const getCommand = (input) => {
         word = command;
         command = '';
     }
-    console.log("Input filtered......", command, word);
+    console.log(`Your command is ${command} for the word ${word}`);
     return {
         command: command,
         word: word
@@ -27,7 +27,7 @@ const getDefinition = async (input, limit = false) => {
     const url = `${process.env.API_HOST}/word/${input}/definitions?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
     
-    if (!data) return [];
+    if (!data || !Array.isArray(data)) return [];
     const def = data.map(x => x.text);
 
     return limit ? def.slice(0, limit) : def;
@@ -35,6 +35,8 @@ const getDefinition = async (input, limit = false) => {
 
 const getSynonym = async (input, limit = false) => {
     let data = await getRelatedWords(input);
+  
+    if (!data || !Array.isArray(data)) return [];
     data = data.find(x => x.relationshipType === 'synonym');
 
     if (!data) return [];
@@ -43,6 +45,8 @@ const getSynonym = async (input, limit = false) => {
 
 const getAntonym = async (input, limit = false) => {
     let data = await getRelatedWords(input);
+    
+    if (!data || !Array.isArray(data)) return [];
     data = data.find(x => x.relationshipType === 'antonym');
     
     if (!data) return [];
@@ -58,7 +62,7 @@ const getExamples = async (input, limit = false) => {
     const url = `${process.env.API_HOST}/word/${input}/examples?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
 
-    if (!data) return [];
+    if (!data || !data.examples) return [];
 
     const exs = data.examples.map(x => x.text)
     return limit ? exs.slice(0, limit) : exs;
