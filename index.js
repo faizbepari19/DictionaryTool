@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const dictService = require('./services/dict');
+const logger = require('./lib/logger');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -18,22 +19,31 @@ rl.on('line', async (line) => {
     let object = dictService.getCommand(line)
     switch (object.command.trim()) {
         case '':
-            await dictService.getAllData(object.word);
+            let [definitions, synonyms, antonyms, examples] = await dictService.getAllData(object.word);
+            logger.printDefinition(definitions);
+            logger.printSynonyms(synonyms);
+            logger.printAntonyms(antonyms);
+            logger.printExamples(examples);
             break;
         case 'defn':
-            await dictService.getDefinition(object.word)
+            let def = await dictService.getDefinition(object.word);
+            logger.printDefinition(def);
             break;
         case 'syn':
-            await dictService.getSynonym(object.word)
+            let syn = await dictService.getSynonym(object.word);
+            logger.printSynonyms(syn)
             break;
         case 'ant':
-            await dictService.getAntonym(object.word)
+            let ant = await dictService.getAntonym(object.word);
+            logger.printAntonyms(ant)
             break;
         case 'ex':
-            await dictService.getExamples(object.word)
+            let ex = await dictService.getExamples(object.word);
+            logger.printExamples(ex);
             break;
         case 'play':
-            console.log('play to do!');
+            console.log('Here we go!\n');
+            await dictService.startPlay(rl);
             break;
         default:
             console.log(`Say what? I might have heard '${line.trim()}'`);
