@@ -1,7 +1,5 @@
 Command Line Dictionary Tool
 
-Requirements
-
 The command-line tool contains the following functions - 
 
 1. Word Definitions
