@@ -26,7 +26,7 @@ const getCommand = (input) => {
 const getDefinition = async (input, limit = false) => {
     const url = `${process.env.API_HOST}/word/${input}/definitions?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
-    
+
     if (!data || !Array.isArray(data)) return [];
     const def = data.map(x => x.text);
 
@@ -35,7 +35,7 @@ const getDefinition = async (input, limit = false) => {
 
 const getSynonym = async (input, limit = false) => {
     let data = await getRelatedWords(input);
-  
+
     if (!data || !Array.isArray(data)) return [];
     data = data.find(x => x.relationshipType === 'synonym');
 
@@ -45,10 +45,10 @@ const getSynonym = async (input, limit = false) => {
 
 const getAntonym = async (input, limit = false) => {
     let data = await getRelatedWords(input);
-    
+
     if (!data || !Array.isArray(data)) return [];
     data = data.find(x => x.relationshipType === 'antonym');
-    
+
     if (!data) return [];
     return limit ? data.words.slice(0, limit) : data.words;
 }
@@ -71,7 +71,7 @@ const getExamples = async (input, limit = false) => {
 const getRandomWord = async () => {
     const url = `${process.env.API_HOST}/words/randomWord?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
-    logger.printRandomWord(data.word);
+    // logger.printRandomWord(data.word);
     return data.word
 }
 
@@ -84,7 +84,8 @@ const getAllData = async (input) => {
         getDefinition(input),
         getSynonym(input),
         getAntonym(input),
-        getExamples(input)
+        getExamples(input),
+        input
     ]);
 }
 
@@ -124,8 +125,11 @@ const question2 = (rl) => {
 
 const startPlay = (r1) => {
     return new Promise(async (resolve, reject) => {
-        let answer = await getRandomWord();
-        let [definitions, synonyms, antonyms, examples] = await getAllData(answer);
+        let expectedAnswers = [];
+        let [definitions, synonyms, antonyms, examples, originalWord] = await getAllData();
+
+        expectedAnswers = [...synonyms]
+        expectedAnswers.push(originalWord);
 
         if (definitions.length) {
             logger.printDefinition(definitions[0]);
@@ -137,17 +141,19 @@ const startPlay = (r1) => {
             logger.printAntonyms(antonyms[0]);
         }
         let userAnswer = await question1(r1);
-        if (verifyAnswer(userAnswer, answer)) {
+
+        expectedAnswers.splice(expectedAnswers.indexOf(synonyms[0]), 1);
+        if (verifyAnswer(userAnswer, expectedAnswers)) {
             return resolve();
         }
 
-        await startInteraction(r1, answer, definitions, synonyms, antonyms, examples);
+        await startInteraction(r1, originalWord, expectedAnswers, definitions, synonyms, antonyms, examples);
         resolve();
     })
 }
 
-const verifyAnswer = (input, answer) => {
-    if (input == answer) {
+const verifyAnswer = (input, expectedAnswers) => {
+    if (expectedAnswers.indexOf(input) != -1) {
         console.log('Yayy!!!!! You are correct');
         return true;
     }
@@ -193,30 +199,35 @@ const showHint = (word, definitions, synonyms, antonyms) => {
     return hintObject;
 }
 
-const startInteraction = async (r1, answer, definitions, synonyms, antonyms, examples) => {
+const startInteraction = async (r1, originalWord, expectedAnswers, definitions, synonyms, antonyms, examples) => {
     let userAnswer = await question2(r1);
     if (userAnswer == 1) {
         userAnswer = await question1(r1);
-        if (verifyAnswer(userAnswer, answer)) {
+        if (verifyAnswer(userAnswer, expectedAnswers)) {
             return true;
         }
     } else if (userAnswer == 2) {
-        let hintObject = showHint(answer, definitions, synonyms, antonyms);
+        let hintObject = showHint(originalWord, definitions, synonyms, antonyms);
         console.log(`HINT is ....  ${hintObject.category} : ${hintObject.hint}`);
         userAnswer = await question1(r1);
-        if (verifyAnswer(userAnswer, answer)) {
+
+        if (hintObject.category == 'Synonym' && expectedAnswers.indexOf(hintObject.hint) != -1) {
+            expectedAnswers.splice(expectedAnswers.indexOf(hintObject.hint), 1);
+        }
+
+        if (verifyAnswer(userAnswer, expectedAnswers)) {
             return true;
         }
     } else if (userAnswer == 3) {
         console.log("Lets quit!!");
-        console.log("The correct answer is ", answer);
+        console.log("The correct answer is ", originalWord);
         logger.printDefinition(definitions);
         logger.printSynonyms(synonyms);
         logger.printAntonyms(antonyms);
         logger.printExamples(examples);
         return true;
     }
-    startInteraction(r1, answer, definitions, synonyms, antonyms, examples);
+    return startInteraction(r1, originalWord, expectedAnswers, definitions, synonyms, antonyms, examples);
 }
 
 const shuffleWord = (word) => {
@@ -225,7 +236,6 @@ const shuffleWord = (word) => {
         .sort((a, b) => a[0] - b[0])
         .map(a => a[1])
         .join('');
-
 }
 
 module.exports = {

@@ -19,7 +19,8 @@ rl.on('line', async (line) => {
     let object = dictService.getCommand(line)
     switch (object.command.trim()) {
         case '':
-            let [definitions, synonyms, antonyms, examples] = await dictService.getAllData(object.word);
+            let [definitions, synonyms, antonyms, examples, rWord] = await dictService.getAllData(object.word);
+            logger.printWord(rWord);
             logger.printDefinition(definitions);
             logger.printSynonyms(synonyms);
             logger.printAntonyms(antonyms);
