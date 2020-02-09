@@ -141,8 +141,7 @@ const startPlay = (r1) => {
             return resolve();
         }
 
-        let iResult = await startInteraction(r1, answer, definitions, synonyms, antonyms);
-        console.log("iResult ", iResult)
+        await startInteraction(r1, answer, definitions, synonyms, antonyms, examples);
         resolve();
     })
 }
@@ -156,7 +155,17 @@ const verifyAnswer = (input, answer) => {
 }
 
 const showHint = (word, definitions, synonyms, antonyms) => {
-    let rNumber = Math.floor(Math.random() * 4) + 1;
+    let hintArr = [HINT.jumble, HINT.definition, HINT.synonym, HINT.antonym];
+    if (definitions.length == 0) {
+        hintArr.splice(hintArr.indexOf(HINT.definition), 1);
+    }
+    if (synonyms.length == 0) {
+        hintArr.splice(hintArr.indexOf(HINT.synonyms), 1);
+    }
+    if (antonyms.length == 0) {
+        hintArr.splice(hintArr.indexOf(HINT.antonyms), 1);
+    }
+    let rNumber = hintArr[Math.floor(Math.random() * hintArr.length)];
     let hintObject = {
         hint: null,
         category: null,
@@ -184,7 +193,7 @@ const showHint = (word, definitions, synonyms, antonyms) => {
     return hintObject;
 }
 
-const startInteraction = async (r1, answer, definitions, synonyms, antonyms) => {
+const startInteraction = async (r1, answer, definitions, synonyms, antonyms, examples) => {
     let userAnswer = await question2(r1);
     if (userAnswer == 1) {
         userAnswer = await question1(r1);
@@ -207,7 +216,7 @@ const startInteraction = async (r1, answer, definitions, synonyms, antonyms) => 
         logger.printExamples(examples);
         return true;
     }
-    startInteraction(r1, answer, definitions, synonyms, antonyms);
+    startInteraction(r1, answer, definitions, synonyms, antonyms, examples);
 }
 
 const shuffleWord = (word) => {
