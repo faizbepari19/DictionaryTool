@@ -10,8 +10,13 @@ const HINT = {
     antonym: 4
 }
 
+/**
+ * 
+ * @returns {Object} An object with command and word
+ */
 const getCommand = (input) => {
     let [command, word] = input.split(' ');
+    //Check if command is valid.
     if (COMMANDS.indexOf(command) == -1 && !word) {
         word = command;
         command = '';
@@ -23,6 +28,13 @@ const getCommand = (input) => {
     }
 }
 
+/**
+ * Returns a list of definitions
+ * @param {string} input 
+ * @param {number} limit 
+ * 
+ * @returns {(String[])} or empty []
+ */
 const getDefinition = async (input, limit = false) => {
     const url = `${process.env.API_HOST}/word/${input}/definitions?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
@@ -33,6 +45,13 @@ const getDefinition = async (input, limit = false) => {
     return limit ? def.slice(0, limit) : def;
 }
 
+/**
+ * Returns a list of synonyms
+ * @param {string} input 
+ * @param {number} limit 
+ * 
+ * @returns {(String[])} or empty []
+ */
 const getSynonym = async (input, limit = false) => {
     let data = await getRelatedWords(input);
 
@@ -43,6 +62,13 @@ const getSynonym = async (input, limit = false) => {
     return limit ? data.words.slice(0, limit) : data.words;
 }
 
+/**
+ * Returns a list of antonyms
+ * @param {string} input 
+ * @param {number} limit 
+ * 
+ * @returns {(String[])} or empty []
+ */
 const getAntonym = async (input, limit = false) => {
     let data = await getRelatedWords(input);
 
@@ -58,6 +84,13 @@ const getRelatedWords = async (input) => {
     return await makeRequest(url);
 }
 
+/**
+ * Returns a list of examples
+ * @param {string} input 
+ * @param {number} limit 
+ * 
+ * @returns {String[]} or empty []
+ */
 const getExamples = async (input, limit = false) => {
     const url = `${process.env.API_HOST}/word/${input}/examples?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
@@ -68,6 +101,13 @@ const getExamples = async (input, limit = false) => {
     return limit ? exs.slice(0, limit) : exs;
 }
 
+/**
+ * Returns a random word
+ * @param {string} input 
+ * @param {number} limit 
+ * 
+ * @returns {(string)} 
+ */
 const getRandomWord = async () => {
     const url = `${process.env.API_HOST}/words/randomWord?api_key=${process.env.API_KEY}`
     const data = await makeRequest(url);
@@ -89,6 +129,10 @@ const getAllData = async (input) => {
     ]);
 }
 
+/**
+ * 
+ * HTTP Request handler
+ */
 const makeRequest = async (url) => {
     // console.log("fetching ---------", url)
     try {
@@ -123,11 +167,15 @@ const question2 = (rl) => {
     })
 }
 
+/**
+ * 'play' functionality implementation
+ */
 const startPlay = (r1) => {
     return new Promise(async (resolve, reject) => {
         let expectedAnswers = [];
         let [definitions, synonyms, antonyms, examples, originalWord] = await getAllData();
 
+        //Any synonyms of the word should be also be accepted as a correct answer.
         expectedAnswers = [...synonyms]
         expectedAnswers.push(originalWord);
 
@@ -142,6 +190,7 @@ const startPlay = (r1) => {
         }
         let userAnswer = await question1(r1);
 
+        //The above displayed synonym should not be accepted a correct answer
         expectedAnswers.splice(expectedAnswers.indexOf(synonyms[0]), 1);
         if (verifyAnswer(userAnswer, expectedAnswers)) {
             return resolve();
@@ -160,8 +209,17 @@ const verifyAnswer = (input, expectedAnswers) => {
     return false;
 }
 
+/**
+ * 
+ * @returns {Object} An object with property hint and category
+ */
 const showHint = (word, definitions, synonyms, antonyms) => {
     let hintArr = [HINT.jumble, HINT.definition, HINT.synonym, HINT.antonym];
+    /**
+     * Need to generate a hint number as per the data. Ex if antonyms is empty 
+     * then we cant display the hint as an antonym
+     */
+
     if (definitions.length == 0) {
         hintArr.splice(hintArr.indexOf(HINT.definition), 1);
     }
@@ -199,6 +257,9 @@ const showHint = (word, definitions, synonyms, antonyms) => {
     return hintObject;
 }
 
+/**
+ * A recursive function to interact w.r.t user's input
+ */
 const startInteraction = async (r1, originalWord, expectedAnswers, definitions, synonyms, antonyms, examples) => {
     let userAnswer = await question2(r1);
     if (userAnswer == 1) {
@@ -212,6 +273,7 @@ const startInteraction = async (r1, originalWord, expectedAnswers, definitions, 
         userAnswer = await question1(r1);
 
         if (hintObject.category == 'Synonym' && expectedAnswers.indexOf(hintObject.hint) != -1) {
+            //If the above displayed hint is a synonym, remove it from @expectedAnswers
             expectedAnswers.splice(expectedAnswers.indexOf(hintObject.hint), 1);
         }
 
